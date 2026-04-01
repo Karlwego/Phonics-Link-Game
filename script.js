@@ -68,6 +68,7 @@ const summarySecondaryButton = document.querySelector("#summary-secondary-btn");
 const newGameButton = document.querySelector("#new-game-btn");
 const shuffleButton = document.querySelector("#shuffle-btn");
 const hintButton = document.querySelector("#hint-btn");
+const soundButton = document.querySelector("#sound-btn");
 
 let tiles = [];
 let selectedTileId = null;
@@ -82,6 +83,9 @@ let gameActive = true;
 let summaryVisible = false;
 let levelStats = createEmptyLevelStats();
 let pendingSummaryAction = null;
+let soundEnabled = true;
+let audioContext = null;
+let audioUnlocked = false;
 
 function createEmptyLevelStats() {
   return {
@@ -121,11 +125,146 @@ function getComboBonus(streak) {
   return (streak - COMBO_BONUS_START + 1) * COMBO_BONUS_STEP;
 }
 
+function updateSoundButton() {
+  soundButton.textContent = `声音: ${soundEnabled ? "开" : "关"}`;
+}
+
+function getAudioContext() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    return null;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioCtx();
+  }
+
+  return audioContext;
+}
+
+function unlockAudio() {
+  const context = getAudioContext();
+  if (!context) {
+    return;
+  }
+
+  if (context.state === "suspended") {
+    context.resume().catch(() => {});
+  }
+
+  audioUnlocked = true;
+}
+
+function createGainNode(context, value, destination = context.destination) {
+  const gainNode = context.createGain();
+  gainNode.gain.value = value;
+  gainNode.connect(destination);
+  return gainNode;
+}
+
+function playMatchSound() {
+  if (!soundEnabled) {
+    return;
+  }
+
+  const context = getAudioContext();
+  if (!context || !audioUnlocked) {
+    return;
+  }
+
+  const start = context.currentTime;
+  const master = createGainNode(context, 0.14);
+
+  const oscillator = context.createOscillator();
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(1240, start);
+  oscillator.frequency.exponentialRampToValueAtTime(1760, start + 0.08);
+  oscillator.frequency.exponentialRampToValueAtTime(980, start + 0.2);
+
+  const gain = createGainNode(context, 0, master);
+  gain.gain.setValueAtTime(0.001, start);
+  gain.gain.exponentialRampToValueAtTime(0.8, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+
+  oscillator.connect(gain);
+  oscillator.start(start);
+  oscillator.stop(start + 0.24);
+}
+
+function playErrorSound() {
+  if (!soundEnabled) {
+    return;
+  }
+
+  const context = getAudioContext();
+  if (!context || !audioUnlocked) {
+    return;
+  }
+
+  const start = context.currentTime;
+  const master = createGainNode(context, 0.1);
+
+  [0, 0.16].forEach((offset) => {
+    const oscillator = context.createOscillator();
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(180 + offset * 80, start + offset);
+
+    const gain = createGainNode(context, 0, master);
+    gain.gain.setValueAtTime(0.001, start + offset);
+    gain.gain.exponentialRampToValueAtTime(0.5, start + offset + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + offset + 0.11);
+
+    oscillator.connect(gain);
+    oscillator.start(start + offset);
+    oscillator.stop(start + offset + 0.12);
+  });
+}
+
+function playWinSound() {
+  if (!soundEnabled) {
+    return;
+  }
+
+  const context = getAudioContext();
+  if (!context || !audioUnlocked) {
+    return;
+  }
+
+  const start = context.currentTime;
+  const master = createGainNode(context, 0.12);
+  const clapTimes = [0, 0.12, 0.26, 0.42, 0.58, 0.78];
+
+  clapTimes.forEach((offset, index) => {
+    const bufferSize = Math.floor(context.sampleRate * 0.08);
+    const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i += 1) {
+      const decay = Math.exp((-10 * i) / bufferSize);
+      data[i] = (Math.random() * 2 - 1) * decay;
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = context.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 1600 + index * 140;
+    filter.Q.value = 0.8;
+
+    const gain = createGainNode(context, 0.22, master);
+    source.connect(filter);
+    filter.connect(gain);
+    source.start(start + offset);
+  });
+}
+
 function updateHeader() {
   const level = getCurrentLevel();
   levelNameElement.textContent = level.name;
   subtitleElement.textContent = `当前是${level.name}关卡。${level.description}遵循传统连连看规则，路径最多只能拐两次。每关限时 2 分钟。`;
   levelDescriptionElement.textContent = `${level.shortHint}，3 连击起每次额外加分，剩余时间每秒可换 10 分。`;
+  updateSoundButton();
 }
 
 function renderLevelSwitcher() {
@@ -564,6 +703,7 @@ function maybeAdvanceLevel() {
   stopTimer();
   gameActive = false;
   applyTimeBonus();
+  playWinSound();
 
   if (currentLevelIndex < LEVELS.length - 1) {
     setMessage(level.completeMessage);
@@ -617,6 +757,7 @@ function removeMatch(firstTile, secondTile, path) {
     score += SCORE_PER_MATCH + comboBonus;
     levelStats.baseScore += SCORE_PER_MATCH;
     levelStats.comboScore += comboBonus;
+    playMatchSound();
 
     const lastPoint = path[path.length - 1];
     const center = getTileCenter(lastPoint);
@@ -687,6 +828,7 @@ function handleTileClick(tileId) {
 
   if (!canPair(selectedTile, clickedTile)) {
     const comboBroken = registerMismatch();
+    playErrorSound();
     selectedTileId = tileId;
     renderBoard();
     if (comboBroken) {
@@ -702,6 +844,7 @@ function handleTileClick(tileId) {
   const path = findPath(selectedTile, clickedTile);
   if (!path) {
     const comboBroken = registerMismatch();
+    playErrorSound();
     selectedTileId = tileId;
     renderBoard();
     if (comboBroken) {
@@ -779,6 +922,14 @@ function startGame(resetScore = true) {
   setMessage(`${getCurrentLevel().name}关卡开始了，限时 2 分钟，先找到同一发音家族的两个方块。`);
 }
 
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  if (soundEnabled) {
+    unlockAudio();
+  }
+  updateSoundButton();
+}
+
 function switchLevel(levelIndex) {
   currentLevelIndex = levelIndex;
   startGame(true);
@@ -839,5 +990,13 @@ window.addEventListener("resize", resizeCanvas);
 newGameButton.addEventListener("click", () => startGame(true));
 shuffleButton.addEventListener("click", handleShuffle);
 hintButton.addEventListener("click", useHint);
+soundButton.addEventListener("click", toggleSound);
+window.addEventListener(
+  "pointerdown",
+  () => {
+    unlockAudio();
+  },
+  { once: true },
+);
 
 startGame(true);
