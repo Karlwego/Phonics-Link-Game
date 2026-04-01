@@ -610,11 +610,7 @@ function canPair(firstTile, secondTile) {
     return false;
   }
 
-  if (firstTile.familyKey !== secondTile.familyKey) {
-    return false;
-  }
-
-  return firstTile.token !== secondTile.token;
+  return firstTile.familyKey === secondTile.familyKey;
 }
 
 function findPath(firstTile, secondTile) {
