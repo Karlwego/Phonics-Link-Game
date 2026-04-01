@@ -546,7 +546,11 @@ function canPair(firstTile, secondTile) {
     return false;
   }
 
-  return firstTile.familyKey === secondTile.familyKey;
+  if (firstTile.familyKey !== secondTile.familyKey) {
+    return false;
+  }
+
+  return firstTile.token !== secondTile.token;
 }
 
 function findPath(firstTile, secondTile) {
