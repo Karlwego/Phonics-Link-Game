@@ -302,7 +302,6 @@ function renderBoard() {
     } else {
       button.innerHTML = `
         <span class="token">${tile.token}</span>
-        <span class="family">${tile.familyKey} 家族</span>
       `;
       button.addEventListener("click", () => handleTileClick(tile.id));
     }

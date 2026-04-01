@@ -260,7 +260,6 @@ button:active {
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 12px 24px rgba(75, 59, 31, 0.12);
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 6px;
@@ -286,15 +285,6 @@ button:active {
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: 1.1;
-  text-align: center;
-}
-
-.tile .family {
-  position: relative;
-  z-index: 1;
-  margin-top: 4px;
-  font-size: 0.68rem;
-  color: var(--muted);
   text-align: center;
 }
 
@@ -570,11 +560,6 @@ button:active {
 
   .tile .token {
     font-size: clamp(1rem, 2vw, 1.5rem);
-  }
-
-  .tile .family {
-    margin-top: 6px;
-    font-size: 0.72rem;
   }
 
   .summary-card {
