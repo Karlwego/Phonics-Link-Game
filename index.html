@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <title>自然拼读连连看大闯关</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=ZCOOL+XiaoWei&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Phonics Link-Up</p>
+          <h1>自然拼读连连看大闯关</h1>
+          <p id="subtitle" class="subtitle">
+            在不同关卡中，把属于同一发音家族的字母块连起来。遵循传统连连看规则，路径最多只能拐两次。
+          </p>
+        </div>
+        <div class="status-card">
+          <div class="status-row">
+            <span>关卡</span>
+            <strong id="level-name">长元音</strong>
+          </div>
+          <div class="status-row">
+            <span>时间</span>
+            <strong id="timer">02:00</strong>
+          </div>
+          <div class="status-row">
+            <span>分数</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="status-row">
+            <span>连击</span>
+            <strong id="combo">0</strong>
+          </div>
+          <div class="status-row">
+            <span>剩余</span>
+            <strong id="remaining">0</strong>
+          </div>
+          <div class="status-row">
+            <span>提示</span>
+            <strong id="hints">3</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <section class="board-panel">
+          <div class="level-switcher" id="level-switcher" aria-label="关卡选择"></div>
+          <div class="toolbar">
+            <button id="new-game-btn" class="primary-btn">重新开始本关</button>
+            <button id="shuffle-btn" class="ghost-btn">洗牌</button>
+            <button id="hint-btn" class="ghost-btn">提示</button>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="link-canvas"></canvas>
+            <div id="floating-text-layer" class="floating-text-layer" aria-hidden="true"></div>
+            <div id="board" class="board" aria-label="自然拼读连连看棋盘"></div>
+          </div>
+        </section>
+
+        <aside class="rules-panel">
+          <section class="panel-card">
+            <h2>配对规则</h2>
+            <p id="level-description" class="panel-intro"></p>
+            <ul id="groups-list" class="groups-list"></ul>
+          </section>
+          <section class="panel-card">
+            <h2>玩法说明</h2>
+            <ul class="help-list">
+              <li>两个方块只要属于同一发音家族，就有资格配对。</li>
+              <li>连接路径必须是水平或垂直线段，且最多两次转弯。</li>
+              <li>路径不能穿过其他未消除方块。</li>
+              <li>每关限时 2 分钟，时间到则本关结束。</li>
+              <li>每次成功配对基础分 200，3 连击起开始获得 combo 奖励。</li>
+              <li>没有可消除组合时，可以点击“洗牌”。</li>
+            </ul>
+          </section>
+          <section class="panel-card message-card">
+            <h2>当前提示</h2>
+            <p id="message">选择两个属于同一发音家族的方块开始吧。</p>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div id="summary-overlay" class="summary-overlay hidden" aria-hidden="true">
+      <div class="summary-card">
+        <p id="summary-tag" class="summary-tag">关卡总结</p>
+        <h2 id="summary-title">本关完成</h2>
+        <p id="summary-message" class="summary-message"></p>
+        <div class="summary-stats">
+          <div class="summary-stat">
+            <span>基础得分</span>
+            <strong id="summary-base-score">0</strong>
+          </div>
+          <div class="summary-stat">
+            <span>连击奖励</span>
+            <strong id="summary-combo-score">0</strong>
+          </div>
+          <div class="summary-stat">
+            <span>时间奖励</span>
+            <strong id="summary-time-score">0</strong>
+          </div>
+          <div class="summary-stat">
+            <span>本关总分</span>
+            <strong id="summary-total-score">0</strong>
+          </div>
+        </div>
+        <div class="summary-actions">
+          <button id="summary-primary-btn" class="primary-btn">继续</button>
+          <button id="summary-secondary-btn" class="ghost-btn">重开本关</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
