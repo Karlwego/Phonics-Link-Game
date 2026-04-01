@@ -372,15 +372,44 @@ function buildDeck() {
 
   const pairFamilies = shuffle([...familyAssignments]);
   const deck = [];
+  const familyTileCounts = new Map();
 
-  pairFamilies.forEach((familyKey, pairIndex) => {
+  pairFamilies.forEach((familyKey) => {
+    familyTileCounts.set(familyKey, (familyTileCounts.get(familyKey) ?? 0) + 2);
+  });
+
+  let pairIndex = 0;
+  familyTileCounts.forEach((tileCount, familyKey) => {
     const group = groups.find((item) => item.key === familyKey);
-    const firstToken = group.tokens[Math.floor(Math.random() * group.tokens.length)];
-    const secondToken = group.tokens[Math.floor(Math.random() * group.tokens.length)];
-    deck.push(
-      { pairId: pairIndex, familyKey, token: firstToken },
-      { pairId: pairIndex, familyKey, token: secondToken },
-    );
+    const familyTokens = [];
+
+    for (let index = 0; index < tileCount; index += 1) {
+      familyTokens.push(group.tokens[index % group.tokens.length]);
+    }
+
+    shuffle(familyTokens);
+
+    for (let index = 0; index < familyTokens.length; index += 2) {
+      let firstToken = familyTokens[index];
+      let secondToken = familyTokens[index + 1];
+
+      if (firstToken === secondToken) {
+        const swapIndex = familyTokens.findIndex(
+          (token, tokenIndex) => tokenIndex > index + 1 && token !== firstToken,
+        );
+
+        if (swapIndex !== -1) {
+          [familyTokens[index + 1], familyTokens[swapIndex]] = [familyTokens[swapIndex], familyTokens[index + 1]];
+          secondToken = familyTokens[index + 1];
+        }
+      }
+
+      deck.push(
+        { pairId: pairIndex, familyKey, token: firstToken },
+        { pairId: pairIndex, familyKey, token: secondToken },
+      );
+      pairIndex += 1;
+    }
   });
 
   return shuffle(deck).map((tile, index) => ({
