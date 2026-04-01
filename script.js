@@ -421,6 +421,41 @@ function buildDeck() {
   }));
 }
 
+function isTokenDistributionSolvable(tileSet) {
+  const familyCounts = new Map();
+
+  tileSet.forEach((tile) => {
+    if (tile.removed) {
+      return;
+    }
+
+    if (!familyCounts.has(tile.familyKey)) {
+      familyCounts.set(tile.familyKey, new Map());
+    }
+
+    const tokenCounts = familyCounts.get(tile.familyKey);
+    tokenCounts.set(tile.token, (tokenCounts.get(tile.token) ?? 0) + 1);
+  });
+
+  for (const tokenCounts of familyCounts.values()) {
+    let total = 0;
+    let maxCount = 0;
+
+    for (const count of tokenCounts.values()) {
+      total += count;
+      if (count > maxCount) {
+        maxCount = count;
+      }
+    }
+
+    if (maxCount > total / 2) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function resizeCanvas() {
   const rect = boardElement.getBoundingClientRect();
   canvas.width = rect.width * window.devicePixelRatio;
@@ -994,8 +1029,19 @@ function shuffleRemainingTiles() {
 
 function ensurePlayableBoard() {
   let safetyCounter = 0;
-  while (!findAnyMatch() && safetyCounter < 60) {
-    shuffleRemainingTiles();
+
+  while (safetyCounter < 80) {
+    if (isTokenDistributionSolvable(tiles) && findAnyMatch()) {
+      return;
+    }
+
+    if (!isTokenDistributionSolvable(tiles)) {
+      tiles = buildDeck();
+      renderBoard();
+    } else {
+      shuffleRemainingTiles();
+    }
+
     safetyCounter += 1;
   }
 }
