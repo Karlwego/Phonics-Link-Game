@@ -173,22 +173,89 @@ function playMatchSound() {
   }
 
   const start = context.currentTime;
-  const master = createGainNode(context, 0.14);
+  const master = createGainNode(context, 0.18);
 
-  const oscillator = context.createOscillator();
-  oscillator.type = "triangle";
-  oscillator.frequency.setValueAtTime(1240, start);
-  oscillator.frequency.exponentialRampToValueAtTime(1760, start + 0.08);
-  oscillator.frequency.exponentialRampToValueAtTime(980, start + 0.2);
+  const laser = context.createOscillator();
+  laser.type = "sawtooth";
+  laser.frequency.setValueAtTime(2100, start);
+  laser.frequency.exponentialRampToValueAtTime(520, start + 0.16);
 
-  const gain = createGainNode(context, 0, master);
-  gain.gain.setValueAtTime(0.001, start);
-  gain.gain.exponentialRampToValueAtTime(0.8, start + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+  const laserGain = createGainNode(context, 0, master);
+  laserGain.gain.setValueAtTime(0.001, start);
+  laserGain.gain.exponentialRampToValueAtTime(0.9, start + 0.01);
+  laserGain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
 
-  oscillator.connect(gain);
-  oscillator.start(start);
-  oscillator.stop(start + 0.24);
+  const body = context.createOscillator();
+  body.type = "triangle";
+  body.frequency.setValueAtTime(980, start);
+  body.frequency.exponentialRampToValueAtTime(420, start + 0.2);
+
+  const bodyGain = createGainNode(context, 0, master);
+  bodyGain.gain.setValueAtTime(0.001, start);
+  bodyGain.gain.exponentialRampToValueAtTime(0.28, start + 0.015);
+  bodyGain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+
+  laser.connect(laserGain);
+  body.connect(bodyGain);
+  laser.start(start);
+  body.start(start);
+  laser.stop(start + 0.2);
+  body.stop(start + 0.22);
+}
+
+function playComboExplosionSound() {
+  if (!soundEnabled) {
+    return;
+  }
+
+  const context = getAudioContext();
+  if (!context || !audioUnlocked) {
+    return;
+  }
+
+  const start = context.currentTime;
+  const master = createGainNode(context, 0.16);
+
+  const bufferSize = Math.floor(context.sampleRate * 0.22);
+  const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i += 1) {
+    const progress = i / bufferSize;
+    const decay = Math.exp(-7 * progress);
+    data[i] = (Math.random() * 2 - 1) * decay;
+  }
+
+  const noise = context.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = context.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(1800, start);
+  filter.frequency.exponentialRampToValueAtTime(180, start + 0.22);
+
+  const noiseGain = createGainNode(context, 0, master);
+  noiseGain.gain.setValueAtTime(0.001, start);
+  noiseGain.gain.exponentialRampToValueAtTime(0.9, start + 0.01);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+
+  noise.connect(filter);
+  filter.connect(noiseGain);
+  noise.start(start);
+
+  const thump = context.createOscillator();
+  thump.type = "triangle";
+  thump.frequency.setValueAtTime(180, start);
+  thump.frequency.exponentialRampToValueAtTime(60, start + 0.18);
+
+  const thumpGain = createGainNode(context, 0, master);
+  thumpGain.gain.setValueAtTime(0.001, start);
+  thumpGain.gain.exponentialRampToValueAtTime(0.6, start + 0.015);
+  thumpGain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+
+  thump.connect(thumpGain);
+  thump.start(start);
+  thump.stop(start + 0.2);
 }
 
 function playErrorSound() {
@@ -763,6 +830,7 @@ function removeMatch(firstTile, secondTile, path) {
     const center = getTileCenter(lastPoint);
     showFloatingText(`+${SCORE_PER_MATCH}`, center.x, center.y - 12, "combo-pop");
     if (comboBonus > 0) {
+      playComboExplosionSound();
       showFloatingText(`COMBO +${comboBonus}`, center.x, center.y - 48, "combo-pop");
     }
 
