@@ -254,6 +254,8 @@ button:active {
   position: relative;
   border: 0;
   border-radius: 16px;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
   color: var(--ink);
   background: linear-gradient(180deg, var(--card-strong), #fff6ec);
   box-shadow:
@@ -286,6 +288,9 @@ button:active {
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-align: center;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .tile.selected {
@@ -437,6 +442,12 @@ button:active {
   color: var(--muted);
 }
 
+.groups-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 18px;
+}
+
 .message-card p {
   margin: 0;
   line-height: 1.7;
@@ -492,6 +503,10 @@ button:active {
   }
 
   .summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .groups-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -586,5 +601,65 @@ button:active {
 
   .panel-card h2 {
     font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 959px) and (orientation: landscape) {
+  .page-shell {
+    padding:
+      max(12px, env(safe-area-inset-top))
+      12px
+      max(16px, env(safe-area-inset-bottom))
+      12px;
+  }
+
+  .hero {
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .subtitle {
+    font-size: 0.92rem;
+  }
+
+  .status-card {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 14px;
+    padding: 14px;
+  }
+
+  .game-layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 14px;
+    align-items: start;
+  }
+
+  .board-panel,
+  .panel-card {
+    padding: 14px;
+  }
+
+  .canvas-wrap {
+    aspect-ratio: 8 / 6;
+    min-height: 320px;
+  }
+
+  .board {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .tile {
+    border-radius: 14px;
+    padding: 4px;
+  }
+
+  .tile .token {
+    font-size: clamp(0.82rem, 2.1vw, 1.02rem);
+  }
+
+  .groups-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
