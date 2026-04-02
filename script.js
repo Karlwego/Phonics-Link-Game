@@ -102,6 +102,21 @@ const COMBO_BONUS_START = 3;
 const COMBO_BREAK_MISSES = 2;
 const TIME_BONUS_PER_SECOND = 10;
 
+const GAME_MODES = [
+  {
+    id: "standard",
+    name: "标准模式",
+    shortHint: "不限时，适合练习规则",
+    timed: false,
+  },
+  {
+    id: "challenge",
+    name: "挑战模式",
+    shortHint: "限时 2 分钟，完成有时间奖励",
+    timed: true,
+  },
+];
+
 const boardElement = document.querySelector("#board");
 const canvas = document.querySelector("#link-canvas");
 const ctx = canvas.getContext("2d");
@@ -116,6 +131,7 @@ const levelDescriptionElement = document.querySelector("#level-description");
 const levelNameElement = document.querySelector("#level-name");
 const subtitleElement = document.querySelector("#subtitle");
 const levelSwitcherElement = document.querySelector("#level-switcher");
+const modeSwitcherElement = document.querySelector("#mode-switcher");
 const floatingTextLayer = document.querySelector("#floating-text-layer");
 const summaryOverlay = document.querySelector("#summary-overlay");
 const summaryTagElement = document.querySelector("#summary-tag");
@@ -138,6 +154,7 @@ let selectedTileId = null;
 let score = 0;
 let hints = INITIAL_HINTS;
 let currentLevelIndex = 0;
+let currentModeId = "standard";
 let timeRemaining = LEVEL_TIME_LIMIT_SECONDS;
 let timerId = null;
 let comboStreak = 0;
@@ -172,6 +189,10 @@ function createEmptyLevelStats() {
 
 function getCurrentLevel() {
   return LEVELS[currentLevelIndex];
+}
+
+function getCurrentMode() {
+  return GAME_MODES.find((mode) => mode.id === currentModeId) ?? GAME_MODES[0];
 }
 
 function getTokenFamilyKeys(levelId, token, fallbackFamilyKey) {
@@ -424,9 +445,12 @@ function playWinSound() {
 
 function updateHeader() {
   const level = getCurrentLevel();
+  const mode = getCurrentMode();
   levelNameElement.textContent = level.name;
-  subtitleElement.textContent = `当前是${level.name}关卡。${level.description}遵循传统连连看规则，路径最多只能拐两次。每关限时 2 分钟。`;
-  levelDescriptionElement.textContent = `${level.shortHint}，3 连击起每次额外加分，剩余时间每秒可换 10 分。`;
+  subtitleElement.textContent = `当前是${level.name}关卡，使用${mode.name}。${level.description}遵循传统连连看规则，路径最多只能拐两次。`;
+  levelDescriptionElement.textContent = mode.timed
+    ? `${level.shortHint}，3 连击起每次额外加分，剩余时间每秒可换 10 分。`
+    : `${level.shortHint}，不限时练习，3 连击起每次额外加分。`;
   updateSoundButton();
 }
 
@@ -443,6 +467,22 @@ function renderLevelSwitcher() {
     button.innerHTML = `<strong>第 ${index + 1} 关 · ${level.name}</strong><span>${level.shortHint}</span>`;
     button.addEventListener("click", () => switchLevel(index));
     levelSwitcherElement.appendChild(button);
+  });
+}
+
+function renderModeSwitcher() {
+  modeSwitcherElement.innerHTML = "";
+
+  GAME_MODES.forEach((mode) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mode-pill";
+    if (mode.id === currentModeId) {
+      button.classList.add("active");
+    }
+    button.textContent = mode.name;
+    button.addEventListener("click", () => switchMode(mode.id));
+    modeSwitcherElement.appendChild(button);
   });
 }
 
@@ -595,14 +635,19 @@ function updateStats() {
   scoreElement.textContent = String(score);
   remainingElement.textContent = String(tiles.filter((tile) => !tile.removed).length);
   hintsElement.textContent = String(hints);
-  timerElement.textContent = formatTime(timeRemaining);
+  timerElement.textContent = getCurrentMode().timed ? formatTime(timeRemaining) : "不限时";
 
   const comboBonus = getComboBonus(comboStreak);
   comboElement.textContent = comboBonus > 0 ? `${comboStreak} (+${comboBonus})` : String(comboStreak);
-  timerElement.classList.toggle("warning", timeRemaining <= 20);
+  timerElement.classList.toggle("warning", getCurrentMode().timed && timeRemaining <= 20);
 }
 
 function startTimer() {
+  if (!getCurrentMode().timed) {
+    stopTimer();
+    return;
+  }
+
   stopTimer();
   timerId = window.setInterval(() => {
     if (!gameActive) {
@@ -916,6 +961,11 @@ function registerMismatch() {
 }
 
 function applyTimeBonus() {
+  if (!getCurrentMode().timed) {
+    levelStats.timeScore = 0;
+    return;
+  }
+
   const timeScore = timeRemaining * TIME_BONUS_PER_SECOND;
   levelStats.timeScore = timeScore;
   score += timeScore;
@@ -960,9 +1010,14 @@ function handleTimeUp() {
 
 function maybeAdvanceLevel() {
   const level = getCurrentLevel();
+  const mode = getCurrentMode();
   stopTimer();
   gameActive = false;
-  applyTimeBonus();
+  if (mode.timed) {
+    applyTimeBonus();
+  } else {
+    levelStats.timeScore = 0;
+  }
   playWinSound();
 
   if (currentLevelIndex < LEVELS.length - 1) {
@@ -970,7 +1025,9 @@ function maybeAdvanceLevel() {
     showSummary({
       tag: `第 ${currentLevelIndex + 1} 关完成`,
       title: `${level.name}通关`,
-      message: `${level.completeMessage} 剩余时间已经按每秒 10 分结算进总分。`,
+      message: mode.timed
+        ? `${level.completeMessage} 剩余时间已经按每秒 10 分结算进总分。`
+        : `${level.completeMessage} 本次是标准模式，已保留基础分和连击奖励。`,
       primaryText: "进入下一关",
       secondaryText: "重开本关",
       onPrimary: () => {
@@ -986,7 +1043,9 @@ function maybeAdvanceLevel() {
   showSummary({
     tag: "全部通关",
     title: "恭喜全部通关",
-    message: `你完成了全部 ${LEVELS.length} 个关卡，剩余时间奖励也已经结算。最终总分是 ${score}。`,
+    message: mode.timed
+      ? `你完成了全部 ${LEVELS.length} 个关卡，剩余时间奖励也已经结算。最终总分是 ${score}。`
+      : `你完成了全部 ${LEVELS.length} 个关卡。标准模式下最终总分是 ${score}。`,
     primaryText: "从第一关再来",
     secondaryText: "重开当前关",
     onPrimary: () => {
@@ -1002,6 +1061,7 @@ function handleSkipLevel() {
     return;
   }
 
+  const mode = getCurrentMode();
   stopTimer();
   gameActive = false;
   selectedTileId = null;
@@ -1015,7 +1075,9 @@ function handleSkipLevel() {
     showSummary({
       tag: `第 ${currentLevelIndex + 1} 关练习完成`,
       title: `${level.name}已完成练习`,
-      message: "你选择直接进入下一关。当前已经获得的基础分和连击分会保留，但这次不会结算剩余时间奖励。",
+      message: mode.timed
+        ? "你选择直接进入下一关。当前已经获得的基础分和连击分会保留，但这次不会结算剩余时间奖励。"
+        : "你选择直接进入下一关。当前已经获得的基础分和连击分会保留，继续下一关练习吧。",
       primaryText: "进入下一关",
       secondaryText: "重开本关",
       onPrimary: () => {
@@ -1039,6 +1101,23 @@ function handleSkipLevel() {
     },
     onSecondary: () => startGame(true),
   });
+}
+
+function autoShuffleIfStuck(reason = "当前无解，已自动洗牌。") {
+  if (!gameActive || summaryVisible) {
+    return false;
+  }
+
+  const match = findAnyMatch();
+  if (match) {
+    return false;
+  }
+
+  shuffleRemainingTiles();
+  ensurePlayableBoard();
+  renderBoard();
+  setMessage(reason);
+  return true;
 }
 
 function removeMatch(firstTile, secondTile, path) {
@@ -1081,7 +1160,7 @@ function removeMatch(firstTile, secondTile, path) {
 
     const available = findAnyMatch();
     if (!available) {
-      setMessage("消除成功，但当前没有可连接组合了，试试点击“洗牌”。");
+      autoShuffleIfStuck("消除成功，当前无解，系统已自动洗牌。");
       return;
     }
 
@@ -1233,13 +1312,18 @@ function startGame(resetScore = true) {
   resetComboState();
   updateHeader();
   renderLevelSwitcher();
+  renderModeSwitcher();
   renderGroups();
   tiles = buildDeck();
   renderBoard();
   ensurePlayableBoard();
   renderBoard();
   startTimer();
-  setMessage(`${getCurrentLevel().name}关卡开始了，限时 2 分钟，先找到同一发音家族的两个方块。`);
+  setMessage(
+    getCurrentMode().timed
+      ? `${getCurrentLevel().name}关卡开始了，限时 2 分钟，先找到同一发音家族的两个方块。`
+      : `${getCurrentLevel().name}关卡开始了，这是标准模式，不限时，安心练习吧。`,
+  );
 }
 
 function toggleSound() {
@@ -1255,6 +1339,11 @@ function switchLevel(levelIndex) {
   startGame(true);
 }
 
+function switchMode(modeId) {
+  currentModeId = modeId;
+  startGame(true);
+}
+
 function useHint() {
   if (!gameActive || summaryVisible) {
     return;
@@ -1267,7 +1356,7 @@ function useHint() {
 
   const match = findAnyMatch();
   if (!match) {
-    setMessage("当前没有可消除组合，先洗牌再继续。");
+    autoShuffleIfStuck("当前无解，系统已自动洗牌，请继续。");
     return;
   }
 

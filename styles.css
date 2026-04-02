@@ -132,6 +132,13 @@ h1 {
   margin-bottom: 14px;
 }
 
+.mode-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .level-pill {
   flex: 1 1 0;
   border-radius: 20px;
@@ -165,6 +172,20 @@ h1 {
 
 .level-pill.active span {
   color: rgba(255, 255, 255, 0.82);
+}
+
+.mode-pill {
+  border-radius: 18px;
+  min-height: 54px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(43, 42, 40, 0.08);
+  color: var(--ink);
+}
+
+.mode-pill.active {
+  color: #fff;
+  background: linear-gradient(135deg, #76b39d, #3d7c69);
+  box-shadow: 0 12px 24px rgba(61, 124, 105, 0.22);
 }
 
 .toolbar {
@@ -514,6 +535,10 @@ button:active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .mode-switcher {
+    max-width: 420px;
+  }
+
   .summary-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -556,6 +581,11 @@ button:active {
   .level-switcher {
     display: flex;
     margin-bottom: 16px;
+  }
+
+  .mode-switcher {
+    margin-bottom: 16px;
+    max-width: 420px;
   }
 
   .level-pill {
