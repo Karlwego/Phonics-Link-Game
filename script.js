@@ -100,7 +100,7 @@ const LEVEL_TIME_LIMIT_SECONDS = 120;
 const COMBO_BONUS_STEP = 50;
 const COMBO_BONUS_START = 3;
 const COMBO_BREAK_MISSES = 2;
-const TIME_BONUS_PER_SECOND = 10;
+const TIME_BONUS_PER_SECOND = 50;
 
 const GAME_MODES = [
   {
@@ -447,7 +447,7 @@ function updateHeader() {
   levelNameElement.textContent = level.name;
   subtitleElement.textContent = `当前是${level.name}关卡，使用${mode.name}。${level.description}遵循传统连连看规则，路径最多只能拐两次。`;
   levelDescriptionElement.textContent = mode.timed
-    ? `${level.shortHint}，3 连击起每次额外加分，剩余时间每秒可换 10 分。`
+    ? `${level.shortHint}，3 连击起每次额外加分，剩余时间每秒可换 50 分。`
     : `${level.shortHint}，不限时练习，3 连击起每次额外加分。`;
   updateSoundButton();
 }
@@ -1024,7 +1024,7 @@ function maybeAdvanceLevel() {
       tag: `第 ${currentLevelIndex + 1} 关完成`,
       title: `${level.name}通关`,
       message: mode.timed
-        ? `${level.completeMessage} 剩余时间已经按每秒 10 分结算进总分。`
+        ? `${level.completeMessage} 剩余时间已经按每秒 50 分结算进总分。`
         : `${level.completeMessage} 本次是标准模式，已保留基础分和连击奖励。`,
       primaryText: "进入下一关",
       secondaryText: "重开本关",
