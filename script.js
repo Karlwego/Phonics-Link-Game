@@ -101,6 +101,8 @@ const COMBO_BONUS_STEP = 50;
 const COMBO_BONUS_START = 3;
 const COMBO_BREAK_MISSES = 2;
 const TIME_BONUS_PER_SECOND = 10;
+const RESCUE_FAMILY_KEY = "RESCUE";
+const RESCUE_TOKEN = "★";
 
 const GAME_MODES = [
   {
@@ -566,6 +568,7 @@ function buildDeck() {
     return {
       ...tile,
       familyKeys,
+      rescue: false,
       special: familyKeys.length > 1,
       id: index,
       row: Math.floor(index / BOARD_COLS),
@@ -729,7 +732,9 @@ function renderBoard() {
         button.setAttribute("aria-hidden", "true");
       }
     } else {
-      if (tile.special) {
+      if (tile.rescue) {
+        button.classList.add("rescue");
+      } else if (tile.special) {
         button.classList.add("special");
       }
       button.innerHTML = `
@@ -1114,10 +1119,22 @@ function autoShuffleIfStuck(reason = "当前无解，已自动洗牌。") {
   }
 
   shuffleRemainingTiles();
-  ensurePlayableBoard();
+  const resolved = ensurePlayableBoard({ allowFullRebuild: false });
   renderBoard();
-  setMessage(reason);
-  return true;
+
+  if (resolved) {
+    setMessage(reason);
+    return true;
+  }
+
+  if (addRescuePair()) {
+    renderBoard();
+    setMessage("当前残局无解，系统已补入一对金色救援块帮助收尾。");
+    return true;
+  }
+
+  setMessage("当前剩余方块无法继续配对了，你可以进入下一关或重开本关。");
+  return false;
 }
 
 function removeMatch(firstTile, secondTile, path) {
@@ -1248,6 +1265,7 @@ function shuffleRemainingTiles() {
   const activeTiles = tiles.filter((tile) => !tile.removed).map((tile) => ({
     familyKey: tile.familyKey,
     familyKeys: [...tile.familyKeys],
+    rescue: tile.rescue,
     special: tile.special,
     token: tile.token,
   }));
@@ -1270,6 +1288,7 @@ function shuffleRemainingTiles() {
       ...tile,
       familyKey: replacement.familyKey,
       familyKeys: [...replacement.familyKeys],
+      rescue: replacement.rescue,
       special: replacement.special,
       token: replacement.token,
     };
@@ -1279,23 +1298,54 @@ function shuffleRemainingTiles() {
   renderBoard();
 }
 
-function ensurePlayableBoard() {
+function ensurePlayableBoard(options = {}) {
+  const { allowFullRebuild = true } = options;
   let safetyCounter = 0;
 
   while (safetyCounter < 80) {
     if (isTokenDistributionSolvable(tiles) && findAnyMatch()) {
-      return;
+      return true;
     }
 
     if (!isTokenDistributionSolvable(tiles)) {
+      if (!allowFullRebuild) {
+        return false;
+      }
+
       tiles = buildDeck();
-      renderBoard();
     } else {
       shuffleRemainingTiles();
     }
 
     safetyCounter += 1;
   }
+
+  return false;
+}
+
+function addRescuePair() {
+  const activeRescueExists = tiles.some((tile) => !tile.removed && tile.rescue);
+  if (activeRescueExists) {
+    return false;
+  }
+
+  const emptySlots = tiles.filter((tile) => tile.removed).slice(0, 2);
+  if (emptySlots.length < 2) {
+    return false;
+  }
+
+  const rescuePairId = `rescue-${Date.now()}`;
+  emptySlots.forEach((tile) => {
+    tile.pairId = rescuePairId;
+    tile.familyKey = RESCUE_FAMILY_KEY;
+    tile.familyKeys = [RESCUE_FAMILY_KEY];
+    tile.token = RESCUE_TOKEN;
+    tile.special = false;
+    tile.rescue = true;
+    tile.removed = false;
+  });
+
+  return true;
 }
 
 function startGame(resetScore = true) {
@@ -1316,7 +1366,7 @@ function startGame(resetScore = true) {
   renderGroups();
   tiles = buildDeck();
   renderBoard();
-  ensurePlayableBoard();
+  ensurePlayableBoard({ allowFullRebuild: true });
   renderBoard();
   startTimer();
   setMessage(
@@ -1372,9 +1422,13 @@ function handleShuffle() {
   }
 
   shuffleRemainingTiles();
-  ensurePlayableBoard();
+  const resolved = ensurePlayableBoard({ allowFullRebuild: false });
   renderBoard();
-  setMessage("棋盘已经重新洗牌。");
+  if (resolved) {
+    setMessage("棋盘已经重新洗牌。");
+  } else {
+    setMessage("当前剩余方块仍然无解，你可以进入下一关或重开本关。");
+  }
 }
 
 summaryPrimaryButton.addEventListener("click", () => {
