@@ -50,9 +50,39 @@ const LEVELS = [
     name: "奇葩元音组合",
     shortHint: "不规则元音与特殊组合",
     description: "把属于同一奇葩元音发音家族的字母组合连起来。",
-    completeMessage: "奇葩元音组合关卡完成了，所有关卡都通关了。",
+    completeMessage: "奇葩元音组合关卡完成了，下一关是综合关。",
     groups: [
       { key: "哦", label: "哦", tokens: ["哦", "aw", "au"] },
+      { key: "哦以", label: "哦以", tokens: ["哦以", "oi", "oy"] },
+      { key: "奥", label: "奥", tokens: ["奥", "ou", "ow"] },
+      { key: "呜", label: "呜", tokens: ["呜", "oo"] },
+      { key: "吮", label: "吮", tokens: ["吮", "tion", "sion", "cien", "tien"] },
+    ],
+  },
+  {
+    id: "mixed-review",
+    name: "综合关",
+    shortHint: "前四关规则综合复习",
+    description: "把前四关的重要发音组合融合在一起做综合复习。",
+    completeMessage: "综合关完成了，所有关卡都通关了。",
+    groups: [
+      { key: "A", label: "A", tokens: ["A", "ai", "ay", "a-e", "eigh"] },
+      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea", "ie", "Y"] },
+      { key: "I", label: "I", tokens: ["I", "i-e", "igh", "ie", "Y"] },
+      { key: "O", label: "O", tokens: ["O", "o-e", "oa", "ol", "ow"] },
+      { key: "U", label: "U", tokens: ["U", "u-e", "ui", "ue", "ew"] },
+      { key: "啊", label: "啊", tokens: ["啊", "ar"] },
+      { key: "哦", label: "哦", tokens: ["哦", "or", "ore", "oar", "al", "all", "aw", "au"] },
+      { key: "饿", label: "饿", tokens: ["饿", "er", "ir", "ur"] },
+      { key: "e尔", label: "e尔", tokens: ["e尔", "air", "are"] },
+      { key: "E尔", label: "E尔", tokens: ["E尔", "eer", "ear", "ere"] },
+      { key: "L", label: "L", tokens: ["L", "el", "ell"] },
+      { key: "i偶", label: "i偶", tokens: ["i偶", "il", "ill"] },
+      { key: "u偶", label: "u偶", tokens: ["u偶", "ul", "ull"] },
+      { key: "A偶", label: "A偶", tokens: ["A偶", "ale", "ail"] },
+      { key: "E偶", label: "E偶", tokens: ["E偶", "eal", "eel"] },
+      { key: "I偶", label: "I偶", tokens: ["I偶", "ile"] },
+      { key: "U偶", label: "U偶", tokens: ["U偶", "uel", "ule", "ewl"] },
       { key: "哦以", label: "哦以", tokens: ["哦以", "oi", "oy"] },
       { key: "奥", label: "奥", tokens: ["奥", "ou", "ow"] },
       { key: "呜", label: "呜", tokens: ["呜", "oo"] },
@@ -124,6 +154,11 @@ const SPECIAL_TOKEN_FAMILIES = {
   "long-vowels": {
     ie: ["I", "E"],
     Y: ["I", "E"],
+  },
+  "mixed-review": {
+    ie: ["I", "E"],
+    Y: ["I", "E"],
+    ow: ["O", "奥"],
   },
 };
 
@@ -424,6 +459,12 @@ function renderGroups() {
   if (level.id === "long-vowels") {
     const item = document.createElement("li");
     item.textContent = `特殊双归属: ie / Y 可同时与 I 家族和 E 家族配对`;
+    groupsListElement.appendChild(item);
+  }
+
+  if (level.id === "mixed-review") {
+    const item = document.createElement("li");
+    item.textContent = `特殊双归属: ie / Y 可同时与 I 和 E 配对，ow 可同时与 O 和 奥 配对`;
     groupsListElement.appendChild(item);
   }
 }
