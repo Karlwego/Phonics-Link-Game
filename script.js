@@ -67,8 +67,8 @@ const LEVELS = [
     completeMessage: "综合关完成了，所有关卡都通关了。",
     groups: [
       { key: "A", label: "A", tokens: ["A", "ai", "ay", "a-e", "eigh"] },
-      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea", "ie", "Y"] },
-      { key: "I", label: "I", tokens: ["I", "i-e", "igh", "ie", "Y"] },
+      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea"] },
+      { key: "I", label: "I", tokens: ["I", "i-e", "igh"] },
       { key: "O", label: "O", tokens: ["O", "o-e", "oa", "ol", "ow"] },
       { key: "U", label: "U", tokens: ["U", "u-e", "ui", "ue", "ew"] },
       { key: "啊", label: "啊", tokens: ["啊", "ar"] },
@@ -101,8 +101,6 @@ const COMBO_BONUS_STEP = 50;
 const COMBO_BONUS_START = 3;
 const COMBO_BREAK_MISSES = 2;
 const TIME_BONUS_PER_SECOND = 10;
-const RESCUE_FAMILY_KEY = "RESCUE";
-const RESCUE_TOKEN = "★";
 
 const GAME_MODES = [
   {
@@ -175,8 +173,6 @@ const SPECIAL_TOKEN_FAMILIES = {
     Y: ["I", "E"],
   },
   "mixed-review": {
-    ie: ["I", "E"],
-    Y: ["I", "E"],
     ow: ["O", "奥"],
   },
 };
@@ -506,7 +502,7 @@ function renderGroups() {
 
   if (level.id === "mixed-review") {
     const item = document.createElement("li");
-    item.textContent = `特殊双归属: ie / Y 可同时与 I 和 E 配对，ow 可同时与 O 和 奥 配对`;
+    item.textContent = `特殊双归属: ow 可同时与 O 和 奥 配对`;
     groupsListElement.appendChild(item);
   }
 }
@@ -568,7 +564,6 @@ function buildDeck() {
     return {
       ...tile,
       familyKeys,
-      rescue: false,
       special: familyKeys.length > 1,
       id: index,
       row: Math.floor(index / BOARD_COLS),
@@ -732,9 +727,7 @@ function renderBoard() {
         button.setAttribute("aria-hidden", "true");
       }
     } else {
-      if (tile.rescue) {
-        button.classList.add("rescue");
-      } else if (tile.special) {
+      if (tile.special) {
         button.classList.add("special");
       }
       button.innerHTML = `
@@ -1127,12 +1120,6 @@ function autoShuffleIfStuck(reason = "当前无解，已自动洗牌。") {
     return true;
   }
 
-  if (addRescuePair()) {
-    renderBoard();
-    setMessage("当前残局无解，系统已补入一对金色救援块帮助收尾。");
-    return true;
-  }
-
   setMessage("当前剩余方块无法继续配对了，你可以进入下一关或重开本关。");
   return false;
 }
@@ -1265,7 +1252,6 @@ function shuffleRemainingTiles() {
   const activeTiles = tiles.filter((tile) => !tile.removed).map((tile) => ({
     familyKey: tile.familyKey,
     familyKeys: [...tile.familyKeys],
-    rescue: tile.rescue,
     special: tile.special,
     token: tile.token,
   }));
@@ -1288,7 +1274,6 @@ function shuffleRemainingTiles() {
       ...tile,
       familyKey: replacement.familyKey,
       familyKeys: [...replacement.familyKeys],
-      rescue: replacement.rescue,
       special: replacement.special,
       token: replacement.token,
     };
@@ -1321,31 +1306,6 @@ function ensurePlayableBoard(options = {}) {
   }
 
   return false;
-}
-
-function addRescuePair() {
-  const activeRescueExists = tiles.some((tile) => !tile.removed && tile.rescue);
-  if (activeRescueExists) {
-    return false;
-  }
-
-  const emptySlots = tiles.filter((tile) => tile.removed).slice(0, 2);
-  if (emptySlots.length < 2) {
-    return false;
-  }
-
-  const rescuePairId = `rescue-${Date.now()}`;
-  emptySlots.forEach((tile) => {
-    tile.pairId = rescuePairId;
-    tile.familyKey = RESCUE_FAMILY_KEY;
-    tile.familyKeys = [RESCUE_FAMILY_KEY];
-    tile.token = RESCUE_TOKEN;
-    tile.special = false;
-    tile.rescue = true;
-    tile.removed = false;
-  });
-
-  return true;
 }
 
 function startGame(resetScore = true) {
