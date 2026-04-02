@@ -267,6 +267,14 @@ button:active {
   padding: 6px;
 }
 
+.tile.special {
+  color: #21344d;
+  background: linear-gradient(180deg, #f6fbff, #dff0ff);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 12px 24px rgba(64, 120, 182, 0.18);
+}
+
 .tile:disabled {
   cursor: not-allowed;
   opacity: 0.76;
@@ -278,6 +286,10 @@ button:active {
   inset: 7px;
   border-radius: 14px;
   border: 1px solid rgba(43, 42, 40, 0.06);
+}
+
+.tile.special::before {
+  border-color: rgba(64, 120, 182, 0.2);
 }
 
 .tile .token {

@@ -7,8 +7,8 @@ const LEVELS = [
     completeMessage: "长元音关卡完成了，下一关是 R 组合。",
     groups: [
       { key: "A", label: "A", tokens: ["A", "ai", "ay", "a-e", "eigh"] },
-      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea"] },
-      { key: "I", label: "I", tokens: ["I", "i-e", "igh"] },
+      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea", "ie", "Y"] },
+      { key: "I", label: "I", tokens: ["I", "i-e", "igh", "ie", "Y"] },
       { key: "O", label: "O", tokens: ["O", "o-e", "oa", "ol"] },
       { key: "U", label: "U", tokens: ["U", "u-e", "ui", "ue", "ew"] },
     ],
@@ -88,6 +88,13 @@ let soundEnabled = true;
 let audioContext = null;
 let audioUnlocked = false;
 
+const SPECIAL_TOKEN_FAMILIES = {
+  "long-vowels": {
+    ie: ["I", "E"],
+    Y: ["I", "E"],
+  },
+};
+
 function createEmptyLevelStats() {
   return {
     baseScore: 0,
@@ -98,6 +105,27 @@ function createEmptyLevelStats() {
 
 function getCurrentLevel() {
   return LEVELS[currentLevelIndex];
+}
+
+function getTokenFamilyKeys(levelId, token, fallbackFamilyKey) {
+  const specialFamilies = SPECIAL_TOKEN_FAMILIES[levelId]?.[token];
+  if (!specialFamilies) {
+    return [fallbackFamilyKey];
+  }
+
+  const families = [...specialFamilies];
+  if (!families.includes(fallbackFamilyKey)) {
+    families.unshift(fallbackFamilyKey);
+  }
+  return families;
+}
+
+function tileSharesFamily(firstTile, secondTile) {
+  if (!firstTile || !secondTile) {
+    return false;
+  }
+
+  return firstTile.familyKeys.some((familyKey) => secondTile.familyKeys.includes(familyKey));
 }
 
 function shuffle(array) {
@@ -360,6 +388,12 @@ function renderGroups() {
     item.textContent = `${group.label}: ${group.tokens.join(" / ")}`;
     groupsListElement.appendChild(item);
   }
+
+  if (level.id === "long-vowels") {
+    const item = document.createElement("li");
+    item.textContent = `特殊双归属: ie / Y 可同时与 I 家族和 E 家族配对`;
+    groupsListElement.appendChild(item);
+  }
 }
 
 function buildDeck() {
@@ -413,13 +447,19 @@ function buildDeck() {
     }
   });
 
-  return shuffle(deck).map((tile, index) => ({
-    ...tile,
-    id: index,
-    row: Math.floor(index / BOARD_COLS),
-    col: index % BOARD_COLS,
-    removed: false,
-  }));
+  const levelId = getCurrentLevel().id;
+  return shuffle(deck).map((tile, index) => {
+    const familyKeys = getTokenFamilyKeys(levelId, tile.token, tile.familyKey);
+    return {
+      ...tile,
+      familyKeys,
+      special: familyKeys.length > 1,
+      id: index,
+      row: Math.floor(index / BOARD_COLS),
+      col: index % BOARD_COLS,
+      removed: false,
+    };
+  });
 }
 
 function isTokenDistributionSolvable(tileSet) {
@@ -571,6 +611,9 @@ function renderBoard() {
         button.setAttribute("aria-hidden", "true");
       }
     } else {
+      if (tile.special) {
+        button.classList.add("special");
+      }
       button.innerHTML = `
         <span class="token">${tile.token}</span>
       `;
@@ -611,7 +654,7 @@ function canPair(firstTile, secondTile) {
     return false;
   }
 
-  return firstTile.familyKey === secondTile.familyKey;
+  return tileSharesFamily(firstTile, secondTile);
 }
 
 function findPath(firstTile, secondTile) {
@@ -764,7 +807,7 @@ function findAnyMatch() {
   const activeTiles = tiles.filter((tile) => !tile.removed);
   for (let i = 0; i < activeTiles.length; i += 1) {
     for (let j = i + 1; j < activeTiles.length; j += 1) {
-      if (activeTiles[i].familyKey !== activeTiles[j].familyKey) {
+      if (!tileSharesFamily(activeTiles[i], activeTiles[j])) {
         continue;
       }
 
@@ -1052,6 +1095,8 @@ function handleTileClick(tileId) {
 function shuffleRemainingTiles() {
   const activeTiles = tiles.filter((tile) => !tile.removed).map((tile) => ({
     familyKey: tile.familyKey,
+    familyKeys: [...tile.familyKeys],
+    special: tile.special,
     token: tile.token,
   }));
 
@@ -1072,6 +1117,8 @@ function shuffleRemainingTiles() {
     return {
       ...tile,
       familyKey: replacement.familyKey,
+      familyKeys: [...replacement.familyKeys],
+      special: replacement.special,
       token: replacement.token,
     };
   });
