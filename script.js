@@ -68,6 +68,7 @@ const summarySecondaryButton = document.querySelector("#summary-secondary-btn");
 const newGameButton = document.querySelector("#new-game-btn");
 const shuffleButton = document.querySelector("#shuffle-btn");
 const hintButton = document.querySelector("#hint-btn");
+const skipButton = document.querySelector("#skip-btn");
 const soundButton = document.querySelector("#sound-btn");
 
 let tiles = [];
@@ -815,16 +816,28 @@ function handleTimeUp() {
   clearPath();
   renderBoard();
   setMessage("时间到，本关挑战结束。");
+
+  const canAdvance = currentLevelIndex < LEVELS.length - 1;
   showSummary({
     tag: `第 ${currentLevelIndex + 1} 关`,
     title: `${getCurrentLevel().name}挑战结束`,
-    message: "时间已经用完了。这一关的基础分和连击分已结算，你可以直接重开再冲一次更高分。",
-    primaryText: "重开本关",
-    secondaryText: "关闭总结",
-    onPrimary: () => startGame(true),
+    message: canAdvance
+      ? "时间已经用完了。这一关的基础分和连击分已结算。你可以直接进入下一关继续练习，也可以重开本关。"
+      : "时间已经用完了。这一关的基础分和连击分已结算。你可以重开本关，或者从第一关再练一轮。",
+    primaryText: canAdvance ? "进入下一关" : "从第一关再来",
+    secondaryText: "重开本关",
+    onPrimary: () => {
+      if (canAdvance) {
+        currentLevelIndex += 1;
+        startGame(false);
+        return;
+      }
+
+      currentLevelIndex = 0;
+      startGame(true);
+    },
     onSecondary: () => {
-      hideSummary();
-      renderBoard();
+      startGame(true);
     },
   });
 }
@@ -858,6 +871,50 @@ function maybeAdvanceLevel() {
     tag: "全部通关",
     title: "恭喜全部通关",
     message: `你完成了两个关卡，剩余时间奖励也已经结算。最终总分是 ${score}。`,
+    primaryText: "从第一关再来",
+    secondaryText: "重开当前关",
+    onPrimary: () => {
+      currentLevelIndex = 0;
+      startGame(true);
+    },
+    onSecondary: () => startGame(true),
+  });
+}
+
+function handleSkipLevel() {
+  if (!gameActive || summaryVisible) {
+    return;
+  }
+
+  stopTimer();
+  gameActive = false;
+  selectedTileId = null;
+  clearPath();
+  renderBoard();
+
+  const level = getCurrentLevel();
+  setMessage(`${level.name}的核心规则已经练习过了，进入下一关继续。`);
+
+  if (currentLevelIndex < LEVELS.length - 1) {
+    showSummary({
+      tag: `第 ${currentLevelIndex + 1} 关练习完成`,
+      title: `${level.name}已完成练习`,
+      message: "你选择直接进入下一关。当前已经获得的基础分和连击分会保留，但这次不会结算剩余时间奖励。",
+      primaryText: "进入下一关",
+      secondaryText: "重开本关",
+      onPrimary: () => {
+        currentLevelIndex += 1;
+        startGame(false);
+      },
+      onSecondary: () => startGame(true),
+    });
+    return;
+  }
+
+  showSummary({
+    tag: "全部练习完成",
+    title: "本轮练习已完成",
+    message: `你已经完成了当前所有关卡的练习。最终累计得分是 ${score}。`,
     primaryText: "从第一关再来",
     secondaryText: "重开当前关",
     onPrimary: () => {
@@ -1133,6 +1190,7 @@ window.addEventListener("resize", resizeCanvas);
 newGameButton.addEventListener("click", () => startGame(true));
 shuffleButton.addEventListener("click", handleShuffle);
 hintButton.addEventListener("click", useHint);
+skipButton.addEventListener("click", handleSkipLevel);
 soundButton.addEventListener("click", toggleSound);
 window.addEventListener(
   "pointerdown",
