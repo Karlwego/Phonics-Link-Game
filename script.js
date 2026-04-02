@@ -7,8 +7,8 @@ const LEVELS = [
     completeMessage: "长元音关卡完成了，下一关是 R 组合。",
     groups: [
       { key: "A", label: "A", tokens: ["A", "ai", "ay", "a-e", "eigh"] },
-      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea", "ie", "Y"] },
-      { key: "I", label: "I", tokens: ["I", "i-e", "igh", "ie", "Y"] },
+      { key: "E", label: "E", tokens: ["E", "e-e", "ee", "ea"] },
+      { key: "I", label: "I", tokens: ["I", "i-e", "igh"] },
       { key: "O", label: "O", tokens: ["O", "o-e", "oa", "ol"] },
       { key: "U", label: "U", tokens: ["U", "u-e", "ui", "ue", "ew"] },
     ],
@@ -168,10 +168,6 @@ let audioContext = null;
 let audioUnlocked = false;
 
 const SPECIAL_TOKEN_FAMILIES = {
-  "long-vowels": {
-    ie: ["I", "E"],
-    Y: ["I", "E"],
-  },
   "mixed-review": {
     ow: ["O", "奥"],
   },
@@ -491,12 +487,6 @@ function renderGroups() {
   for (const group of level.groups) {
     const item = document.createElement("li");
     item.textContent = `${group.label}: ${group.tokens.join(" / ")}`;
-    groupsListElement.appendChild(item);
-  }
-
-  if (level.id === "long-vowels") {
-    const item = document.createElement("li");
-    item.textContent = `特殊双归属: ie / Y 可同时与 I 家族和 E 家族配对`;
     groupsListElement.appendChild(item);
   }
 
